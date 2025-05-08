@@ -103,9 +103,8 @@ async function processPDF(page: Page, pdfPath: string) {
 test('procesa PDF básico con campos rellenados', async ({ page }) => {
   log('Iniciando test: procesa PDF básico con campos rellenados');
   
-  // Usar un timeout más largo para la navegación en CI
   await page.goto('http://localhost:9001', { 
-    timeout: process.env.CI ? 60000 : 30000,
+    timeout: 30000,
     waitUntil: 'networkidle'
   });
 
@@ -130,18 +129,11 @@ test('procesa PDF básico con campos rellenados', async ({ page }) => {
   log('Test completado con éxito');
 });
 
-test('procesa PDF complejo con campos rellenados', async ({ page }) => {
-  // Omitir este test en CI para simplificar
-  if (process.env.CI) {
-    log('Omitiendo test de PDF complejo en entorno CI');
-    test.skip();
-    return;
-  }
-  
+test('procesa PDF complejo con campos rellenados', async ({ page }) => {  
   log('Iniciando test: procesa PDF complejo con campos rellenados');
   
   await page.goto('http://localhost:9001', { 
-    timeout: process.env.CI ? 60000 : 30000,
+    timeout: 30000,
     waitUntil: 'networkidle'
   });
 
@@ -181,18 +173,11 @@ test('procesa PDF complejo con campos rellenados', async ({ page }) => {
 });
 
 // Test para procesar múltiples PDFs a la vez
-test('procesa múltiples PDFs y genera CSV combinado', async ({ page }) => {
-  // Omitir este test en CI para simplificar
-  if (process.env.CI) {
-    log('Omitiendo test de múltiples PDFs en entorno CI');
-    test.skip();
-    return;
-  }
-  
+test('procesa múltiples PDFs y genera CSV combinado', async ({ page }) => {  
   log('Iniciando test: procesa múltiples PDFs y genera CSV combinado');
   
   await page.goto('http://localhost:9001', { 
-    timeout: process.env.CI ? 60000 : 30000,
+    timeout: 30000,
     waitUntil: 'networkidle'
   });
 

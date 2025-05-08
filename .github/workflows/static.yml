@@ -16,46 +16,17 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
 
     - name: Install dependencies
       run: npm ci
 
     - name: Install Playwright browsers
       run: npx playwright install --with-deps chromium
-      
 
     - name: Run tests
-      run: |
-        # Iniciar el servidor HTTP en segundo plano
-        npx http-server -c-1 -p 9001 &
-        SERVER_PID=$!
-        
-        # Esperar a que el servidor esté disponible
-        echo "Esperando a que el servidor esté disponible..."
-        timeout=30
-        while ! curl -s http://localhost:9001 > /dev/null; do
-          if [ $timeout -le 0 ]; then
-            echo "Error: El servidor no pudo iniciarse"
-            kill $SERVER_PID
-            exit 1
-          fi
-          echo "Esperando... ($timeout segundos restantes)"
-          sleep 1
-          timeout=$((timeout - 1))
-        done
-        echo "Servidor iniciado correctamente"
-        
-        # Ejecutar los tests
-        CI=true npx playwright test --reporter=list
-        TEST_EXIT_CODE=$?
-        
-        # Detener el servidor
-        kill $SERVER_PID
-        
-        # Devolver el código de salida de los tests
-        exit $TEST_EXIT_CODE
-      timeout-minutes: 5
+      run: npm test
+      timeout-minutes: 1
       
     - name: Deploy to GitHub Pages
       if: success() # Solo se ejecuta si los tests han pasado
