@@ -130,3 +130,8 @@ node_modules/
 playwright_report/
 test-results/
 playwright-report/
+
+tests/fixtures/basic-data.json
+tests/fixtures/basic-filled.pdf
+tests/fixtures/complex-data.json
+tests/fixtures/complex-filled.pdf
