@@ -17,5 +17,8 @@
     "test:e2e": "playwright test",
     "test": "start-server-and-test serve http://localhost:9001 test:e2e",
     "test:ci": "CI=true playwright test --reporter=list"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
   }
 }
