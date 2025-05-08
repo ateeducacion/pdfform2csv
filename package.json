@@ -16,6 +16,6 @@
     "serve": "http-server -c-1 -p 9001",
     "test:e2e": "playwright test",
     "test": "start-server-and-test serve http://localhost:9001 test:e2e",
-    "test:ci": "start-server-and-test serve http://localhost:9001 test:e2e"
+    "test:ci": "CI=true playwright test --reporter=list"
   }
 }

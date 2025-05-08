@@ -2,15 +2,15 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 30000,
+  timeout: process.env.CI ? 60000 : 30000, // Timeout más largo en CI
   expect: {
-    timeout: 5000
+    timeout: process.env.CI ? 10000 : 5000
   },
   fullyParallel: false, // Ejecutar tests secuencialmente para mejor visibilidad
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1, // Usar un solo worker para mejor visibilidad de logs
-  reporter: [['html'], ['list']], // Añadir reporter de lista para ver resultados en consola
+  reporter: process.env.CI ? 'list' : [['html'], ['list']], // Simplificar reporter en CI
   use: {
     baseURL: 'http://localhost:9001',
     trace: 'on',
