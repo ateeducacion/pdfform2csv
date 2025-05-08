@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Form to CSV</title>
+
+    <meta name="description" content="Extrae datos de formularios PDF y convierte a CSV">
+    <meta name="author" content="Área de Tecnología Educativa">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.7.570/pdf.min.js"></script>
+
+    <!-- Realizado por: Área de Tecnología Educativa -->
+</head>
+<body>
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <h1 class="mb-4">PDF Form to CSV</h1>
+            
+            <div class="alert alert-warning">
+                Todos los archivos se procesan localmente en tu navegador. No se sube nada a internet.
+            </div>
+
+            <!-- Paso 1: Subida de archivos -->
+            <h4>Paso 1: Subir formularios PDF</h4>
+            <input type="file" id="pdfFiles" class="form-control mb-3" multiple accept="application/pdf">
+
+            <div id="fileList" class="mb-4"></div>
+
+            <!-- Paso 2: Revisión -->
+            <h4>Paso 2: Revisar compatibilidad</h4>
+            <div id="reviewResult" class="mb-4"></div>
+
+            <!-- Paso 3: Extraer datos -->
+            <h4>Paso 3: Extraer datos</h4>
+            <button id="extractBtn" class="btn btn-primary mb-3" disabled>Extraer datos</button>
+
+            <div id="csvPreview" class="table-responsive mb-3"></div>
+            <a id="downloadLink" class="btn btn-success d-none" download="datos.csv">Descargar CSV</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const pdfFilesInput = document.getElementById('pdfFiles');
+    const fileListDiv = document.getElementById('fileList');
+    const reviewResultDiv = document.getElementById('reviewResult');
+    const extractBtn = document.getElementById('extractBtn');
+    const csvPreviewDiv = document.getElementById('csvPreview');
+    const downloadLink = document.getElementById('downloadLink');
+
+    let parsedForms = [];
+
+    pdfFilesInput.addEventListener('change', async () => {
+        parsedForms = [];
+        fileListDiv.innerHTML = '';
+        reviewResultDiv.innerHTML = '';
+        csvPreviewDiv.innerHTML = '';
+        downloadLink.classList.add('d-none');
+
+        const files = Array.from(pdfFilesInput.files);
+
+        for (const file of files) {
+            const listItem = document.createElement('div');
+            listItem.textContent = `Procesando: ${file.name}`;
+            fileListDiv.appendChild(listItem);
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                const form = pdfDoc.getForm();
+                const fields = form.getFields().map(f => f.getName());
+                parsedForms.push({ name: file.name, fields, file });
+            } catch (e) {
+                listItem.textContent = `${file.name} - No compatible o sin formularios.`;
+            }
+        }
+
+        checkCompatibility();
+    });
+
+    function checkCompatibility() {
+        if (parsedForms.length === 0) {
+            reviewResultDiv.textContent = 'No hay formularios válidos.';
+            extractBtn.disabled = true;
+            return;
+        }
+
+        // Normalizar los campos para comparar (ignorando índices)
+        const normalizeFields = (fields) => {
+            return fields.map(field => field.replace(/\[\d+\]$/, '[]')).sort().join('|');
+        };
+
+        const referenceFields = normalizeFields(parsedForms[0].fields);
+        let allCompatible = true;
+        const summary = parsedForms.map(form => {
+            const normalizedFields = normalizeFields(form.fields);
+            const same = normalizedFields === referenceFields;
+            if (!same) allCompatible = false;
+            return `<li>${form.name}: ${same ? 'Compatible' : '<strong>No compatible</strong>'}</li>`;
+        }).join('');
+
+        reviewResultDiv.innerHTML = `<ul>${summary}</ul>`;
+        extractBtn.disabled = !allCompatible;
+    }
+
+    // Analiza los campos para detectar patrones de índices
+    function analyzeFieldPatterns(fields) {
+        const patterns = {};
+        const baseFields = new Set();
+        
+        // Identificar campos con índices y sus bases
+        fields.forEach(field => {
+            const match = field.match(/^(.+?)\[(\d+)\]$/);
+            if (match) {
+                const baseName = match[1];
+                const index = match[2];
+                
+                if (!patterns[baseName]) {
+                    patterns[baseName] = {
+                        type: 'indexed',
+                        indices: [index],
+                        fields: [field]
+                    };
+                } else {
+                    patterns[baseName].indices.push(index);
+                    patterns[baseName].fields.push(field);
+                }
+                baseFields.add(baseName);
+            } else {
+                patterns[field] = {
+                    type: 'normal',
+                    field: field
+                };
+            }
+        });
+        
+        // Ordenar los índices para cada patrón
+        for (const base in patterns) {
+            if (patterns[base].type === 'indexed') {
+                patterns[base].indices.sort();
+                patterns[base].fields.sort((a, b) => {
+                    const indexA = a.match(/\[(\d+)\]$/)[1];
+                    const indexB = b.match(/\[(\d+)\]$/)[1];
+                    return parseInt(indexA) - parseInt(indexB);
+                });
+            }
+        }
+        
+        return patterns;
+    }
+
+    // Crea encabezados normalizados para el CSV
+    function createNormalizedHeaders(patterns) {
+        const headers = [];
+        
+        // Primero agregar campos normales
+        for (const fieldName in patterns) {
+            if (patterns[fieldName].type === 'normal') {
+                headers.push(fieldName);
+            }
+        }
+        
+        // Luego agregar campos base para los indexados
+        for (const fieldName in patterns) {
+            if (patterns[fieldName].type === 'indexed') {
+                headers.push(fieldName);
+            }
+        }
+        
+        return headers;
+    }
+
+    // Extrae datos del formulario según los patrones detectados
+    function extractFormData(pdfForm, patterns) {
+        const rows = [];
+        const maxIndices = {};
+        const normalFields = {};
+        
+        // Obtener el número máximo de índices para cada campo base
+        for (const base in patterns) {
+            if (patterns[base].type === 'indexed') {
+                maxIndices[base] = patterns[base].indices.length;
+            } else {
+                // Extraer valores de campos normales
+                normalFields[base] = getFieldValue(pdfForm, base);
+            }
+        }
+        
+        // Determinar el número máximo de filas necesarias
+        const maxRows = Object.values(maxIndices).reduce((max, count) => Math.max(max, count), 1);
+        
+        // Si no hay campos indexados, crear una sola fila con campos normales
+        if (maxRows === 1 && Object.keys(maxIndices).length === 0) {
+            const row = [];
+            for (const fieldName in patterns) {
+                if (patterns[fieldName].type === 'normal') {
+                    row.push(normalFields[fieldName]);
+                }
+            }
+            rows.push(row);
+            return rows;
+        }
+        
+        // Crear filas para cada conjunto de campos indexados
+        for (let i = 0; i < maxRows; i++) {
+            const row = [];
+            
+            // Agregar campos normales a cada fila
+            for (const fieldName in patterns) {
+                if (patterns[fieldName].type === 'normal') {
+                    row.push(normalFields[fieldName]);
+                }
+            }
+            
+            // Agregar campos indexados correspondientes a esta fila
+            for (const base in patterns) {
+                if (patterns[base].type === 'indexed') {
+                    if (i < maxIndices[base]) {
+                        const indexedField = patterns[base].fields[i];
+                        row.push(getFieldValue(pdfForm, indexedField));
+                    } else {
+                        row.push(''); // Rellenar con vacío si no hay más índices
+                    }
+                }
+            }
+            
+            rows.push(row);
+        }
+        
+        return rows;
+    }
+
+    // Obtiene el valor de un campo según su tipo
+    function getFieldValue(pdfForm, fieldName) {
+        try {
+            // Intentar obtener el campo por su nombre
+            const field = pdfForm.getField(fieldName);
+            
+            if (!field) return '';
+            
+            // Determinar el tipo de campo y extraer su valor
+            if (field.constructor.name === 'PDFTextField') {
+                return field.getText() || '';
+            } else if (field.constructor.name === 'PDFCheckBox') {
+                return field.isChecked() ? 'Sí' : 'No';
+            } else if (field.constructor.name === 'PDFRadioGroup') {
+                return field.getSelected() || '';
+            } else if (field.constructor.name === 'PDFDropdown') {
+                return field.getSelected() || '';
+            } else if (field.constructor.name === 'PDFOptionList') {
+                return field.getSelected().join(', ') || '';
+            } else {
+                // Intentar getText como fallback para otros tipos
+                return field.getText ? field.getText() : '';
+            }
+        } catch (e) {
+            console.error(`Error al obtener valor del campo ${fieldName}:`, e);
+            return '';
+        }
+    }
+
+    extractBtn.addEventListener('click', async () => {
+        // Analizar los campos para detectar patrones de índices
+        const fieldPatterns = analyzeFieldPatterns(parsedForms[0].fields);
+        
+        // Crear encabezados sin índices para el CSV
+        const headers = createNormalizedHeaders(fieldPatterns);
+        const rows = [headers];
+
+        for (const form of parsedForms) {
+            const arrayBuffer = await form.file.arrayBuffer();
+            const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+            const pdfForm = pdfDoc.getForm();
+            
+            // Extraer datos según los patrones detectados
+            const extractedRows = extractFormData(pdfForm, fieldPatterns);
+            rows.push(...extractedRows);
+        }
+
+        const csv = rows.map(r => r.map(v => {
+            // Asegurarse de que v sea una cadena antes de llamar a replace
+            const strValue = (v === null || v === undefined) ? '' : String(v);
+            return '"' + strValue.replace(/"/g, '""') + '"';
+        }).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        downloadLink.href = url;
+        downloadLink.classList.remove('d-none');
+
+        // Mostrar tabla previa
+        const table = document.createElement('table');
+        table.className = 'table table-bordered table-striped';
+        table.innerHTML = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
+        const tbody = document.createElement('tbody');
+        rows.slice(1).forEach(row => {
+            const tr = document.createElement('tr');
+            row.forEach(cell => {
+                const td = document.createElement('td');
+                td.textContent = cell;
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        csvPreviewDiv.innerHTML = '';
+        csvPreviewDiv.appendChild(table);
+    });
+</script>
+</body>
+</html>

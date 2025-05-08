@@ -1,0 +1,24 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: . # Aquí seleccionamos la raíz del repo, donde está el index.html
+        force_orphan: true  # Crea la rama gh-pages si no existe, sin historia anterior
+
+    - name: Display success message
+      run: echo "Deployed successfully to GitHub Pages!"
