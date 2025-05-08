@@ -24,22 +24,6 @@ jobs:
     - name: Install Playwright browsers
       run: npx playwright install --with-deps chromium
       
-    - name: Start HTTP server
-      run: npx http-server -c-1 -p 9001 &
-      
-    - name: Wait for server to start
-      run: |
-        timeout=30
-        while ! curl -s http://localhost:9001 > /dev/null; do
-          if [ $timeout -le 0 ]; then
-            echo "Server failed to start"
-            exit 1
-          fi
-          echo "Waiting for server to start... ($timeout seconds left)"
-          sleep 1
-          timeout=$((timeout - 1))
-        done
-        echo "Server started successfully"
 
     - name: Run tests
       run: npm run test:ci
