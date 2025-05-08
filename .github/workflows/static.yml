@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Test and Deploy to GitHub Pages
 
 on:
   push:
@@ -6,14 +6,29 @@ on:
       - main
 
 jobs:
-  deploy:
+  test-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps chromium
+
+    - name: Run tests
+      run: npm test
+      
     - name: Deploy to GitHub Pages
+      if: success() # Solo se ejecuta si los tests han pasado
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -21,4 +36,5 @@ jobs:
         force_orphan: true  # Crea la rama gh-pages si no existe, sin historia anterior
 
     - name: Display success message
-      run: echo "Deployed successfully to GitHub Pages!"
+      if: success()
+      run: echo "Tests passed and deployed successfully to GitHub Pages!"
