@@ -10,6 +10,7 @@
  *        node create-basic-pdf.js
  */
 const fs = require('fs');
+const path = require('path');
 const { PDFDocument, rgb } = require('pdf-lib');
 
 async function createFormPdf() {
@@ -44,7 +45,14 @@ async function createFormPdf() {
   }
 
   const pdfBytes = await pdfDoc.save();
-  fs.writeFileSync('basic.pdf', pdfBytes);
+  
+  // Guardar en la carpeta fixtures
+  const fixturesDir = path.resolve(__dirname);
+  if (!fs.existsSync(fixturesDir)) {
+    fs.mkdirSync(fixturesDir, { recursive: true });
+  }
+  
+  fs.writeFileSync(path.resolve(fixturesDir, 'basic.pdf'), pdfBytes);
 }
 
 createFormPdf();

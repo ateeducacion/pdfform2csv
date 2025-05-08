@@ -16,6 +16,12 @@ async function generateTestPDFs() {
   const basicPdfPath = path.resolve(__dirname, 'fixtures/basic.pdf');
   const complexPdfPath = path.resolve(__dirname, 'fixtures/complex.pdf');
   
+  // Crear directorios si no existen
+  const fixturesDir = path.resolve(__dirname, 'fixtures');
+  if (!fs.existsSync(fixturesDir)) {
+    fs.mkdirSync(fixturesDir, { recursive: true });
+  }
+  
   if (!fs.existsSync(basicPdfPath)) {
     console.error('Error: No se encuentra basic.pdf. Ejecuta primero create-basic-pdf.js');
     process.exit(1);
@@ -70,7 +76,7 @@ async function generateTestPDFs() {
     email: `${randomText('usuario')}@example.com`,
     acceptTerms: true,
     subscribeNewsletter: Math.random() > 0.5,
-    isStudent: Math.random() > 0.5 ? 'Yes' : 'No',
+    isStudent: Math.random() > 0.5,
     favoriteFruit: ['Apple', 'Banana', 'Orange', 'Mango', 'Grapes'][Math.floor(Math.random() * 5)]
   };
   
@@ -96,7 +102,11 @@ async function generateTestPDFs() {
         complexForm.getCheckBox(field).uncheck();
       }
     } else if (field === 'isStudent') {
-      complexForm.getRadioGroup(field).select(value);
+      if (value === true || value === 'Yes') {
+        complexForm.getCheckBox(field).check();
+      } else {
+        complexForm.getCheckBox(field).uncheck();
+      }
     } else if (field === 'favoriteFruit') {
       complexForm.getDropdown(field).select(value);
     } else if (field.includes('[')) {

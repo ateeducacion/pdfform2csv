@@ -12,6 +12,7 @@
  */
 
 const fs = require('fs');
+const path = require('path');
 const { PDFDocument, rgb } = require('pdf-lib');
 
 async function createComplexFormPdf() {
@@ -47,13 +48,10 @@ async function createComplexFormPdf() {
   cb2.addToPage(page, { x: 200, y: y, width: 15, height: 15 });
   line();
 
-  // Radio Buttons (Yes / No)
+  // Checkbox for student status
   label('Are you a student?');
-  const radioGroup = form.createRadioGroup('isStudent');
-  radioGroup.addOptionToPage('Yes', page, { x: 200, y: y, width: 15, height: 15 });
-  label('Yes', 220);
-  radioGroup.addOptionToPage('No', page, { x: 300, y: y, width: 15, height: 15 });
-  label('No', 320);
+  const studentCheckbox = form.createCheckBox('isStudent');
+  studentCheckbox.addToPage(page, { x: 200, y: y, width: 15, height: 15 });
   line();
 
   // Dropdown (Frutas)
@@ -79,7 +77,14 @@ async function createComplexFormPdf() {
   }
 
   const pdfBytes = await pdfDoc.save();
-  fs.writeFileSync('complex.pdf', pdfBytes);
+  
+  // Guardar en la carpeta fixtures
+  const fixturesDir = path.resolve(__dirname);
+  if (!fs.existsSync(fixturesDir)) {
+    fs.mkdirSync(fixturesDir, { recursive: true });
+  }
+  
+  fs.writeFileSync(path.resolve(fixturesDir, 'complex.pdf'), pdfBytes);
 }
 
 createComplexFormPdf();
