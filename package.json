@@ -1,0 +1,25 @@
+{
+  "name": "pdfform2csv",
+  "version": "1.0.0",
+  "description": "Aplicación web sencilla para extraer datos de formularios PDF y convertirlos en un archivo CSV, directamente desde el navegador. No requiere instalación ni conexión a internet.",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "http-server": "^14.1.1",
+    "playwright": "^1.52.0",
+    "start-server-and-test": "^2.0.11"
+  },
+  "scripts": {
+    "serve": "http-server -c-1 -p 9001",
+    "test:e2e": "playwright test",
+    "test": "start-server-and-test serve http://localhost:9001 test:e2e",
+    "test:ci": "CI=true playwright test --reporter=list",
+    "generate-pdfs": "node tests/fixtures/create-basic-pdf.js && node tests/fixtures/create-complex-pdf.js && node tests/generate-test-pdfs.js"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}
