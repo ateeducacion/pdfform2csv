@@ -209,6 +209,8 @@
         // Crear filas para cada conjunto de campos indexados
         for (let i = 0; i < maxRows; i++) {
             const row = [];
+            let hasData = false;
+            const indexedValues = {};
             
             // Agregar campos normales a cada fila
             for (const fieldName in patterns) {
@@ -217,19 +219,30 @@
                 }
             }
             
-            // Agregar campos indexados correspondientes a esta fila
+            // Recopilar valores de campos indexados para esta fila
             for (const base in patterns) {
                 if (patterns[base].type === 'indexed') {
                     if (i < maxIndices[base]) {
                         const indexedField = patterns[base].fields[i];
-                        row.push(getFieldValue(pdfForm, indexedField));
+                        const value = getFieldValue(pdfForm, indexedField);
+                        indexedValues[base] = value;
+                        
+                        // Verificar si hay al menos un valor no vacío
+                        if (value && value.trim() !== '') {
+                            hasData = true;
+                        }
+                        
+                        row.push(value);
                     } else {
                         row.push(''); // Rellenar con vacío si no hay más índices
                     }
                 }
             }
             
-            rows.push(row);
+            // Solo agregar la fila si al menos un campo indexado tiene datos
+            if (Object.keys(maxIndices).length === 0 || hasData) {
+                rows.push(row);
+            }
         }
         
         return rows;
