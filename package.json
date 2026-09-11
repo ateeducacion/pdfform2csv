@@ -9,7 +9,7 @@
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "http-server": "^14.1.1",
-    "playwright": "^1.62.1",
+    "playwright": "^1.63.0",
     "start-server-and-test": "^3.0.12"
   },
   "scripts": {
